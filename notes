@@ -1,0 +1,54 @@
+[tradingbot]
+
+binance sdk
+- https://python-binance.readthedocs.io/en/latest/
+
+Get Prices - 
+	- prices = client.get_all_tickers()
+
+Place Order - 
+	- order - client.get_test_order()
+
+trading bot logic:
+
+1. retrieve data from price_prediction table
+2. get all coins to be traded
+3. set amounts to trade
+	- get from settings
+4. keep log of trade made
+5. keep trades made
+		- P&L per coin
+		- Overall P&L
+
+[sqlite3]
+
+.exit
+.tables
+
+pred_table
+trades
+
+[supported pairs]
+# not sure if testnet only
+[
+  'BNBBUSD',
+  'BTCBUSD',
+  'ETHBUSD',
+  'LTCBUSD',
+  'TRXBUSD',
+  'XRPBUSD',
+  'BNBUSDT',
+  'BTCUSDT',
+  'ETHUSDT',
+  'LTCUSDT',
+  'TRXUSDT',
+  'XRPUSDT',
+  'BNBBTC',
+  'ETHBTC',
+  'LTCBTC',
+  'TRXBTC',
+  'XRPBTC',
+  'LTCBNB',
+  'TRXBNB',
+  'XRPBNB'
+]
