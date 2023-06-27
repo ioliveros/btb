@@ -1,0 +1,11 @@
+[changes]
+
+1. Grab the order book
+2. Place bid for the highest bid price
+3. Wait for <some> seconds
+4. See if bid went through
+5. If bid not go through, delete the order and repeat Step 2
+6. Receive an indication from current script to sell.
+   Once received sell coin as limit order.
+
+** Ignore price target, just follow exactly what the person does

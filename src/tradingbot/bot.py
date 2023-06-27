@@ -242,7 +242,6 @@ class Bot:
 
                 # calculate current price - profit/loss
                 profitData = self.bot.get_profit(transactionId=transactionId, bid_price=bid_price)
-
                 profitData['transactionId'] = transactionId
                 profitData['status'] = status
 
