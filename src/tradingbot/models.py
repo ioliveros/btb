@@ -11,12 +11,7 @@ class BaseTable:
         results = []
         for kdata in data:
             results.append({self.dmapper[k]:kdata[k] for k in kdata})
-        return results
-
-    def get_predictions(self, db:object, symbol:str):
-        return db.select_one(
-            f"SELECT * FROM pred_table WHERE c = '{symbol}' ORDER BY ia DESC LIMIT 1"
-        )
+        return results    
 
 class PredTable(BaseTable):
 
@@ -38,6 +33,11 @@ class PredTable(BaseTable):
             'mp':'monthly_profit',
             'ia': 'inserted_at'
         }
+
+    def get_predictions(self, db:object, symbol:str):
+        return db.select_one(
+            f"SELECT * FROM pred_table WHERE c = '{symbol}' ORDER BY ia DESC LIMIT 1"
+        )
 
     
 class TradingTable(BaseTable):

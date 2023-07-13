@@ -20,7 +20,7 @@ class TradingBotClient:
         self.logger = logger
 
         self.client = self.load_sdk_client(sdk=self.sdk)
-        self.db = SQLiteDB(db=config['database']['dbname'])
+        self.db = SQLiteDB(db=config['database']['dbname'], logger=logger)
 
         tf_conf = config['trading']
         self.trading_pair = tf_conf['trading_pair']
@@ -129,7 +129,7 @@ class TradingBotClient:
         if render:
             self.client.render_tbl([data], 
                 field_names=[
-                    "transactionId", "orderId", "sellId", "unrealizedProfit", "currentPrice",
+                    "transactionId", "orderId", "sellId", "unrealizedProfit", "currentPrice", "realizedProfit",
                     "buyPrice", "sellPrice", "status", "isExpired", "actualBuyQty", "actualSellQty"
                 ]
             )
@@ -210,9 +210,11 @@ class TradingBotClient:
             # unrealized profit
             uP = float(currentPriceValue) - float(buyPriceValue)
             unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
+            self.logger.info(f"[get_profit] => unrealizedProfit: {float(currentPriceValue)} - {float(buyPriceValue)} = {unrealizedProfit}")
             # actual realized profit
             rP = float(sellPriceValue) - float(buyPriceValue)
             realizedProfit = "{:.{precision}f}".format(rP, precision=self.base_asset_precision)
+            self.logger.info(f"[get_profit] => realizedProfit: {float(sellPriceValue)} - {float(buyPriceValue)} = {realizedProfit}")
 
         return {            
             "buyPriceValue": buyPriceValue,            
