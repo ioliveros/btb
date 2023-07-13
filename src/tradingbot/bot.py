@@ -348,7 +348,7 @@ class Bot:
                     sellUpdateData["sellPrice"] = float(details['price'])
                     sellUpdateData["actualSellQty"] = float(details['cummulativeQuoteQty']) / float(details['price'])
                     # calculate current price - profit/loss
-                    profitData = self.bot.get_profit(transactionId=transactionId, bid_price=bid_price, sell_price=bid_price)              
+                    profitData = self.bot.get_profit(transactionId=transactionId, bid_price=bid_price, sell_price=sell_price)
                     sellUpdateData["unrealizedProfit"] = profitData['unrealizedProfit']
                     sellUpdateData["realizedProfit"] = profitData['realizedProfit']                 
                     sellUpdateData["isExpired"] = 1

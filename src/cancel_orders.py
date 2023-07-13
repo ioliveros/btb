@@ -9,10 +9,10 @@ config = configparser.ConfigParser()
 config.read("config.ini")
 
 client = Client(
-			api_key=config["credentials"]["binance_api_key"],
-			api_secret=config["credentials"]["binance_api_secret"],
-			testnet=True
-		)
+	api_key=config["credentials"]["binance_api_key"], 
+	api_secret=config["credentials"]["binance_api_secret"],
+	testnet=True
+)
 
 symbol = config["trading"]["trading_pair"]
 

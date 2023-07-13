@@ -9,6 +9,8 @@ from models import PredTable, TradingTable
 from api.binance_futures import BinanceFuturesAPI
 from api.binance_spot import BinanceSpotAPI
 
+from decimal import Decimal, getcontext
+
 SLEEP_BUFFER_MIN=0.01
 SLEEP_BUFFER_MAX=5
 
@@ -194,27 +196,33 @@ class TradingBotClient:
         price_data = self.get_prices(symbol=self.trading_pair)
         orderData = self.get_order_status(transactionId)
 
+        # set precision
+        getcontext().prec = self.base_asset_precision
+
         if bid_price:            
             # compute for the current profit
-            buyPriceValue = float(orderData['abq']) * float(bid_price)
-            currentPriceValue = float(orderData['abq']) * float(price_data["price"])
+            buyPriceValue = Decimal(orderData['abq']) * Decimal(bid_price)
+            currentPriceValue = Decimal(orderData['abq']) * Decimal(price_data["price"])            
             # unrealized profit
-            uP = float(currentPriceValue) - float(buyPriceValue)
+            uP = currentPriceValue - buyPriceValue            
             unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
 
         if sell_price:
-            # compute for the current profit
-            buyPriceValue = float(orderData['abq']) * float(bid_price)
-            currentPriceValue = float(orderData['abq']) * float(price_data["price"])            
-            sellPriceValue = float(orderData['abq']) * float(sell_price)            
+
+            # compute for the current profit                        
+            buyPriceValue = Decimal(orderData['abq']) * Decimal(bid_price)
+            currentPriceValue = Decimal(orderData['abq']) * Decimal(price_data["price"])            
+            sellPriceValue = Decimal(orderData['abq']) * Decimal(sell_price)            
+
             # unrealized profit
-            uP = float(currentPriceValue) - float(buyPriceValue)
+            uP = currentPriceValue - buyPriceValue
             unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
-            self.logger.info(f"[get_profit] => unrealizedProfit: {float(currentPriceValue)} - {float(buyPriceValue)} = {unrealizedProfit}")
-            # actual realized profit
-            rP = float(sellPriceValue) - float(buyPriceValue)
+            self.logger.info(f"[get_profit] => unrealizedProfit: {currentPriceValue} - {buyPriceValue} = {unrealizedProfit}")
+
+            # actual realized profit            
+            rP = Decimal(sellPriceValue) - Decimal(buyPriceValue)
             realizedProfit = "{:.{precision}f}".format(rP, precision=self.base_asset_precision)
-            self.logger.info(f"[get_profit] => realizedProfit: {float(sellPriceValue)} - {float(buyPriceValue)} = {realizedProfit}")
+            self.logger.info(f"[get_profit] => realizedProfit: {sellPriceValue} - {buyPriceValue} = {realizedProfit}")
 
         return {            
             "buyPriceValue": buyPriceValue,            
