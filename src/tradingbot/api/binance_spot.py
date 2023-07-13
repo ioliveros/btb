@@ -44,7 +44,7 @@ class BinanceSpotAPI:
             return Client(
                 api_key=creds['binance_api_key'], api_secret=creds['binance_api_secret'], testnet=True
             )
-        else:
+        else:            
             return Client(
                 api_key=creds['binance_api_key'], api_secret=creds['binance_api_secret']
             )
@@ -78,7 +78,7 @@ class BinanceSpotAPI:
         self.render_tbl(result=[result], 
             field_names=['symbol', 'orderId', 'type', 'side', 'transactTime', 'price', 'origQty', 'executedQty', 'status']
         )
-        self.logger.debug(f"[set_order] - result: {result}")
+        self.logger.debug(f"[set_order] - result: {json.dumps(result, indent=2)}")
         return result     
 
     @retry(tries=3, delay=2)

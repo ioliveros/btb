@@ -1,6 +1,7 @@
 import math
 import random
 import time
+import json
 import traceback
 from db import SQLiteDB
 from models import PredTable, TradingTable
@@ -28,6 +29,7 @@ class TradingBotClient:
 
         self.trd_tbl = TradingTable(self.logger)
         self.trading_info = self.client.get_symbol_info(trading_pair=self.trading_pair)
+        self.logger.info(f"[trading_filter] - {json.dumps(self.trading_info, indent=2)}")
 
         self.base_asset_precision = self.trading_info["baseAssetPrecision"]
         self.quote_precision = self.trading_info["quotePrecision"]
@@ -100,6 +102,9 @@ class TradingBotClient:
                 quantity=quantity, reduceOnly=reduceOnly
             )
         elif self.trade_type == "spot":
+
+            quantity = "{:.{precision}f}".format(quantity, precision=self.base_asset_precision)
+
             while True:
                 self.logger.info(f"[close_order] - quantity:{quantity} - price:{price}")
                 try:
@@ -108,23 +113,17 @@ class TradingBotClient:
                                 quantity=quantity, price=price
                             )
                 except:       
-                    self.buffer()     
+                    
                     log_error = traceback.format_exc()
                     if 'insufficient balance for requested action' in log_error:
                         # trim down order
-                        # quantity = self.get_trimmed_quantity(quantity)
-                        quantity = round((quantity - self.step_size), self.base_asset_precision)
-                        return self.client.close_order(          
-                                symbol=symbol, side="SELL", stype=stype, 
-                                quantity=quantity, price=price
-                            )
-                    if 'Precision is over the maximum defined for this asset' in log_error:
-                        # adjust precision
-                        quantity = self.get_trimmed_quantity(quantity)
-                        return self.client.close_order(
-                                symbol=symbol, side="SELL", stype=stype, 
-                                quantity=quantity, price=price
-                            )      
+                        quantity = float(quantity) - self.step_size
+
+                    if 'Precision' in log_error:
+                        # adjust precision                        
+                        quantity = "{:.{precision}f}".format(quantity, precision=self.base_asset_precision)  
+
+                self.buffer()                                    
 
     def save_requested_position(self, data:dict, render:bool=None):
         if render:
@@ -187,11 +186,10 @@ class TradingBotClient:
     
     def get_profit(self, transactionId:int, bid_price=None, sell_price=None) -> float:
 
-        unrealizedProfit = 0
-        currentPrice = 0
-        realizedProfit = 0
-        buyPriceValue = 0
-        sellPriceValue = 0
+        unrealizedProfit = None
+        realizedProfit = None
+        buyPriceValue = None
+        sellPriceValue = None
 
         price_data = self.get_prices(symbol=self.trading_pair)
         orderData = self.get_order_status(transactionId)
@@ -200,21 +198,27 @@ class TradingBotClient:
             # compute for the current profit
             buyPriceValue = float(orderData['abq']) * float(bid_price)
             currentPriceValue = float(orderData['abq']) * float(price_data["price"])
-            unrealizedProfit = round((float(currentPriceValue) - float(buyPriceValue)), self.base_asset_precision)
+            # unrealized profit
+            uP = float(currentPriceValue) - float(buyPriceValue)
+            unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
 
         if sell_price:
             # compute for the current profit
             buyPriceValue = float(orderData['abq']) * float(bid_price)
-            currentPriceValue = float(orderData['abq']) * float(price_data["price"])
-            unrealizedProfit = round((float(currentPriceValue) - float(sellPriceValue)), self.base_asset_precision)
-            sellPriceValue = float(orderData['abq']) * float(sell_price)
-            realizedProfit = round((float(currentPriceValue) - float(sellPriceValue)), self.base_asset_precision)
+            currentPriceValue = float(orderData['abq']) * float(price_data["price"])            
+            sellPriceValue = float(orderData['abq']) * float(sell_price)            
+            # unrealized profit
+            uP = float(currentPriceValue) - float(buyPriceValue)
+            unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
+            # actual realized profit
+            rP = float(sellPriceValue) - float(buyPriceValue)
+            realizedProfit = "{:.{precision}f}".format(rP, precision=self.base_asset_precision)
 
-        return {
-            "buyPriceValue": buyPriceValue,
-            "currentPriceVale": currentPrice,
+        return {            
+            "buyPriceValue": buyPriceValue,            
             "sellPriceValue": sellPriceValue,
             "unrealizedProfit": unrealizedProfit,
+            "currentPrice": price_data["price"],
             "realizedProfit": realizedProfit
         }
 
@@ -273,10 +277,10 @@ class TradingBotClient:
             # 19000 x 0.00002 = 0.38 < 10 (MIN_NOTIONAL.minNotional)
             notional_size = float(price) * float(amount)
             if float(notional_size) < min_notional_size:
-                self.logger.warning(f"Notional(amt): {notional_size} is less than min allowed NOTIONAL_SIZE: {min_notional_size}")
+                self.logger.warning(f"Price: {price} x Amount: {amount} = {notional_size} is less than min allowed NOTIONAL_SIZE: {min_notional_size}")
                 return False
             if float(notional_size) > max_notional_size: 
-                self.logger.warning(f"Notional(amt) {notional_size} is less than max allowed NOTIONAL_SIZE: {max_notional_size}")
+                self.logger.warning(f"Price: {price} x Amount: {amount} = {notional_size} is greater than max allowed NOTIONAL_SIZE: {max_notional_size}")
                 return False
 
         return is_allowed

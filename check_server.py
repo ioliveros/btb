@@ -1,8 +1,8 @@
 from binance.client import Client
 import time
 
-api_key='...'
-api_secret='...'
+api_key='xxxxxx'
+api_secret='yyyyyy'
 client = Client(api_key, api_secret)
 
 for i in range(1, 10):
