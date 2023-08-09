@@ -83,7 +83,6 @@ class Bot:
         if self.back_off_start_count >= BACK_OFF_LIMIT:
             self.back_off_start_count = BACK_OFF_START_COUNT
 
-
     def run(self, args):
 
         while True:
@@ -279,7 +278,10 @@ class Bot:
                 
                 # get the actual executed buy quantity aka "SELL" amount
                 sell_data = self.bot.get_order_status(transactionId=transactionId)
-                sell_amount = float(sell_data['abq'])
+                original_sell_amount = float(sell_data['abq'])
+
+                # need to check if there are coins that were partially filled, need to sell those remaining coins also
+                sell_amount = self.bot.check_remaining_coins(symbol=self.symbol, sell_amount=original_sell_amount)
 
                 # get open orders and get highest bid
                 sell_price = self.bot.get_order_book(
@@ -305,7 +307,7 @@ class Bot:
                 sellUpdateData["side"] = "SELL"
                 sellUpdateData["status"] = status
                 sellUpdateData["sellId"] = sellId
-                sellUpdateData["sellPrice"] = sell_price
+                sellUpdateData["sellPrice"] = sell_price                
 
                 for _ in range(self.sell_retry):
 
@@ -333,7 +335,11 @@ class Bot:
                         sellUpdateData["actualSellQty"] = float(float(details['cummulativeQuoteQty']) / float(details['price']))
                         self.bot.save_requested_position(sellUpdateData)
 
-                    if status == "FILLED": break
+                    if status == "FILLED": 
+                        # update actual sell quantity
+                        sellUpdateData["sellPrice"] = float(details['price'])
+                        sellUpdateData["actualSellQty"] = sell_amount
+                        break
 
                 # refresh retry to next available sell price iteration
                 if status != "FILLED":
