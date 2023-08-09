@@ -105,8 +105,10 @@ class TradingBotClient:
             )
         elif self.trade_type == "spot":
 
-            quantity = "{:.{precision}f}".format(quantity, precision=self.base_asset_precision)
+            # set precision
+            getcontext().prec = self.base_asset_precision
 
+            quantity = "{:.{precision}f}".format(Decimal(quantity), precision=self.base_asset_precision)
             while True:
                 self.logger.info(f"[close_order] - quantity:{quantity} - price:{price}")
                 try:
@@ -123,7 +125,7 @@ class TradingBotClient:
 
                     if 'Precision' in log_error:
                         # adjust precision                        
-                        quantity = "{:.{precision}f}".format(quantity, precision=self.base_asset_precision)  
+                        quantity = "{:.{precision}f}".format(Decimal(quantity), precision=self.base_asset_precision)  
 
                 self.buffer()                                    
 
@@ -132,7 +134,7 @@ class TradingBotClient:
             self.client.render_tbl([data], 
                 field_names=[
                     "transactionId", "orderId", "sellId", "unrealizedProfit", "currentPrice", "realizedProfit",
-                    "buyPrice", "sellPrice", "status", "isExpired", "actualBuyQty", "actualSellQty"
+                    "buyPrice", "sellPrice", "status", "isExpired", "actualBuyQty", "actualSellQty", "amount"
                 ]
             )
         return self.trd_tbl.save_requested_position(db=self.db, data=data)
@@ -212,10 +214,10 @@ class TradingBotClient:
             # compute for the current profit                        
             buyPriceValue = Decimal(orderData['abq']) * Decimal(bid_price)
             currentPriceValue = Decimal(orderData['abq']) * Decimal(price_data["price"])            
-            sellPriceValue = Decimal(orderData['abq']) * Decimal(sell_price)            
+            sellPriceValue = Decimal(orderData['asq']) * Decimal(sell_price)            
 
             # unrealized profit
-            uP = currentPriceValue - buyPriceValue
+            uP = Decimal(currentPriceValue) - Decimal(buyPriceValue)
             unrealizedProfit = "{:.{precision}f}".format(uP, precision=self.base_asset_precision)
             self.logger.info(f"[get_profit] => unrealizedProfit: {currentPriceValue} - {buyPriceValue} = {unrealizedProfit}")
 
@@ -320,3 +322,31 @@ class TradingBotClient:
     
         trimmed_price = round(price / self.tick_size) * self.tick_size
         return trimmed_price
+
+
+    def check_remaining_coins(self, symbol:str, sell_amount:int) -> int:
+
+        result = self.client.show_account(symbol)
+        if not result:
+            return sell_amount
+
+        remaining_coins = 0
+        for row in result["balances"]:
+            if symbol.upper() != row['asset'].upper(): continue
+            remaining_coins = row["free"]
+            break
+
+
+        updated_sell_amount = 0
+        getcontext().prec = self.base_asset_precision
+        if Decimal(sell_amount) < Decimal(remaining_coins):
+            remaining_coins_plus_sell_amount = "{:.{precision}f}".format(Decimal(remaining_coins), precision=self.base_asset_precision)
+            updated_sell_amount = Decimal(remaining_coins)
+        else:
+            updated_sell_amount = Decimal(sell_amount)
+        
+        s_updated_sell_amount = "{:.{precision}f}".format(updated_sell_amount, precision=self.base_asset_precision)
+        self.logger.info(f"[check_remaining_coins] -  final -> {s_updated_sell_amount}")
+
+        return s_updated_sell_amount
+
