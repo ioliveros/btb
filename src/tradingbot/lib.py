@@ -121,11 +121,21 @@ class TradingBotClient:
                     log_error = traceback.format_exc()
                     if 'insufficient balance for requested action' in log_error:
                         # trim down order
-                        quantity = float(quantity) - self.step_size
+                        remaining_quantity = self.check_remaining_coins(symbol, quantity)
+                        adjusted_q = Decimal(remaining_quantity) - Decimal(self.step_size)
+                        quantity = "{:.{precision}f}".format(adjusted_q, precision=self.base_asset_precision)                        
 
                     if 'Precision' in log_error:
                         # adjust precision                        
-                        quantity = "{:.{precision}f}".format(Decimal(quantity), precision=self.base_asset_precision)  
+                        quantity = "{:.{precision}f}".format(Decimal(quantity), precision=self.base_asset_precision)
+
+                    if 'Filter failure: LOT_SIZE' in log_error:
+                        # adjust sell_amount to correct LOT_SIZE
+                        adjusted_q = math.floor(Decimal(quantity))
+                        quantity = "{:.{precision}f}".format(adjusted_q, precision=self.base_asset_precision)
+                    
+                    else:
+                        self.logger.warning(f"[close_order] - {log_error}")
 
                 self.buffer()                                    
 

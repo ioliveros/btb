@@ -4,6 +4,7 @@ import configparser
 import argparse
 import time
 import traceback
+from decimal import Decimal, getcontext
 
 import random
 from random import randint
@@ -299,8 +300,11 @@ class Bot:
                     symbol=self.trading_pair, side="SELL", stype="LIMIT", 
                     quantity=sell_amount, price=sell_price
                 )
+
                 if not sell_order:
                     continue
+
+                sell_amount = sell_order['origQty']
                 
                 sellId = sell_order["orderId"]
                 status = sell_order["status"]
@@ -336,9 +340,11 @@ class Bot:
                         self.bot.save_requested_position(sellUpdateData)
 
                     if status == "FILLED": 
+                        # set precision
+                        getcontext().prec = self.bot.base_asset_precision                        
                         # update actual sell quantity
                         sellUpdateData["sellPrice"] = float(details['price'])
-                        sellUpdateData["actualSellQty"] = sell_amount
+                        sellUpdateData["actualSellQty"] = "{:.{precision}f}".format(Decimal(sell_amount), precision=self.bot.base_asset_precision)
                         break
 
                 # refresh retry to next available sell price iteration
