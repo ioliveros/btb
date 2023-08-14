@@ -352,11 +352,15 @@ class TradingBotClient:
         if Decimal(sell_amount) < Decimal(remaining_coins):
             remaining_coins_plus_sell_amount = "{:.{precision}f}".format(Decimal(remaining_coins), precision=self.base_asset_precision)
             updated_sell_amount = Decimal(remaining_coins)
-        else:
-            updated_sell_amount = Decimal(sell_amount)
+        else:            
+            if Decimal(sell_amount) == Decimal(remaining_coins):
+                updated_sell_amount = Decimal(sell_amount)
+            else:
+                updated_sell_amount = Decimal(remaining_coins)
         
         s_updated_sell_amount = "{:.{precision}f}".format(updated_sell_amount, precision=self.base_asset_precision)
         self.logger.info(f"[check_remaining_coins] -  final -> {s_updated_sell_amount}")
 
         return s_updated_sell_amount
 
+        
